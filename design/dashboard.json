@@ -32,23 +32,40 @@
   "owner": "group:retail-channel",
   "tokens_from": "components/library.json",
   "runtime_target": "liferay-7.4-custom-element",
-
   "canvas": {
     "base_width": 1280,
-    "breakpoints": { "sm": 480, "md": 768, "lg": 1280 },
-    "grid": { "columns": 12, "gutter": "space.6", "margin": "space.6" }
+    "breakpoints": {
+      "sm": 480,
+      "md": 768,
+      "lg": 1280
+    },
+    "grid": {
+      "columns": 12,
+      "gutter": "space.6",
+      "margin": "space.6"
+    }
   },
-
   "nodes": [
     {
       "id": "greeting",
       "label": "Good morning, {name}",
       "role": "display",
       "component": "@bank/ui/Heading@2.0",
-      "placement": { "column": 1, "span": 8, "row": 1 },
-      "props": { "level": 1, "tone": "primary" },
-      "data_props": ["text"],
-      "states": ["default"],
+      "placement": {
+        "column": 1,
+        "span": 8,
+        "row": 1
+      },
+      "props": {
+        "level": 1,
+        "tone": "primary"
+      },
+      "data_props": [
+        "text"
+      ],
+      "states": [
+        "default"
+      ],
       "notes": "The interpolated {name} is the whole reason a greeting reaches identity at all."
     },
     {
@@ -56,20 +73,45 @@
       "label": "Balance",
       "role": "data-panel",
       "component": "@bank/ui/BalanceHero@2.1",
-      "placement": { "column": 1, "span": 8, "row": 2 },
-      "props": { "showAvailable": true },
-      "data_props": ["balance"],
-      "states": ["default", "loading", "error"]
+      "placement": {
+        "column": 1,
+        "span": 8,
+        "row": 2
+      },
+      "props": {
+        "showAvailable": true
+      },
+      "data_props": [
+        "balance"
+      ],
+      "states": [
+        "default",
+        "loading",
+        "error"
+      ]
     },
     {
       "id": "cards-tile",
       "label": "Your cards",
       "role": "data-panel",
       "component": "@bank/ui/CardList@4.2",
-      "placement": { "column": 1, "span": 4, "row": 3 },
-      "props": { "emptyMessage": "No active cards." },
-      "data_props": ["cards"],
-      "states": ["default", "loading", "empty", "error"],
+      "placement": {
+        "column": 1,
+        "span": 4,
+        "row": 3
+      },
+      "props": {
+        "emptyMessage": "No active cards."
+      },
+      "data_props": [
+        "cards"
+      ],
+      "states": [
+        "default",
+        "loading",
+        "empty",
+        "error"
+      ],
       "notes": "Needs CardSummary[]. The declared capability returns CardMaster, which this component cannot render even if the lifecycle allowed it."
     },
     {
@@ -77,26 +119,87 @@
       "label": "Recent activity",
       "role": "data-panel",
       "component": "@bank/ui/ActivityList@3.0",
-      "placement": { "column": 5, "span": 4, "row": 3 },
-      "props": { "groupByDay": true },
-      "data_props": ["entries"],
+      "placement": {
+        "column": 5,
+        "span": 4,
+        "row": 3
+      },
+      "props": {
+        "groupByDay": true
+      },
+      "data_props": [
+        "entries"
+      ],
       "data_shape": {
         "entries": {
           "fields": [
-            { "name": "occurredAt", "type": "string", "format": "date-time", "required": true, "layer": "Row / timestamp" },
-            { "name": "description", "type": "string", "required": true, "layer": "Row / merchant" },
-            { "name": "amount", "type": "string", "required": true, "layer": "Row / amount", "description": "Decimal string. Money is not a double." },
-            { "name": "direction", "type": "string", "enum": ["debit", "credit"], "required": true, "layer": "Row / amount colour" },
-            { "name": "category", "type": "string", "required": false, "layer": "Row / category chip" }
+            {
+              "name": "occurredAt",
+              "type": "string",
+              "format": "date-time",
+              "required": true,
+              "layer": "Row / timestamp"
+            },
+            {
+              "name": "description",
+              "type": "string",
+              "required": true,
+              "layer": "Row / merchant"
+            },
+            {
+              "name": "amount",
+              "type": "string",
+              "required": true,
+              "layer": "Row / amount",
+              "description": "Decimal string. Money is not a double."
+            },
+            {
+              "name": "direction",
+              "type": "string",
+              "enum": [
+                "debit",
+                "credit"
+              ],
+              "required": true,
+              "layer": "Row / amount colour"
+            },
+            {
+              "name": "category",
+              "type": "string",
+              "required": false,
+              "layer": "Row / category chip"
+            }
           ],
           "sample": [
-            { "occurredAt": "2026-08-03T14:32:00Z", "description": "Albert Praha", "amount": "-248.00", "direction": "debit", "category": "groceries" },
-            { "occurredAt": "2026-08-03T09:05:00Z", "description": "Salary — Example s.r.o.", "amount": "62400.00", "direction": "credit" },
-            { "occurredAt": "2026-08-02T19:48:00Z", "description": "Dopravní podnik", "amount": "-30.00", "direction": "debit", "category": "transport" }
+            {
+              "occurredAt": "2026-08-03T14:32:00Z",
+              "description": "Albert Praha",
+              "amount": "-248.00",
+              "direction": "debit",
+              "category": "groceries"
+            },
+            {
+              "occurredAt": "2026-08-03T09:05:00Z",
+              "description": "Salary — Example s.r.o.",
+              "amount": "62400.00",
+              "direction": "credit"
+            },
+            {
+              "occurredAt": "2026-08-02T19:48:00Z",
+              "description": "Dopravní podnik",
+              "amount": "-30.00",
+              "direction": "debit",
+              "category": "transport"
+            }
           ]
         }
       },
-      "states": ["default", "loading", "empty", "error"],
+      "states": [
+        "default",
+        "loading",
+        "empty",
+        "error"
+      ],
       "notes": "Drawn with realistic entries and bound to nothing. A data_prop with no declared capability is the honest shape of UNDECLARED."
     },
     {
@@ -104,18 +207,59 @@
       "label": "Offers for you",
       "role": "data-panel",
       "component": "@bank/ui/PromoCard@1.4",
-      "placement": { "column": 9, "span": 4, "row": 2, "row_span": 2 },
-      "props": { "dismissible": true },
-      "data_props": ["offer"],
+      "placement": {
+        "column": 9,
+        "span": 4,
+        "row": 2,
+        "row_span": 2
+      },
+      "props": {
+        "dismissible": true
+      },
+      "data_props": [
+        "offer"
+      ],
       "data_shape": {
         "offer": {
           "fields": [
-            { "name": "offerId", "type": "string", "required": true, "layer": "(not shown — needed to dismiss it)" },
-            { "name": "headline", "type": "string", "required": true, "layer": "Offer / headline" },
-            { "name": "body", "type": "string", "required": true, "layer": "Offer / body copy" },
-            { "name": "ctaLabel", "type": "string", "required": true, "layer": "Offer / CTA button" },
-            { "name": "ctaHref", "type": "string", "format": "uri", "required": true, "layer": "Offer / CTA button link" },
-            { "name": "validUntil", "type": "string", "format": "date", "required": false, "layer": "Offer / fine print" }
+            {
+              "name": "offerId",
+              "type": "string",
+              "required": true,
+              "layer": "(not shown — needed to dismiss it)"
+            },
+            {
+              "name": "headline",
+              "type": "string",
+              "required": true,
+              "layer": "Offer / headline"
+            },
+            {
+              "name": "body",
+              "type": "string",
+              "required": true,
+              "layer": "Offer / body copy"
+            },
+            {
+              "name": "ctaLabel",
+              "type": "string",
+              "required": true,
+              "layer": "Offer / CTA button"
+            },
+            {
+              "name": "ctaHref",
+              "type": "string",
+              "format": "uri",
+              "required": true,
+              "layer": "Offer / CTA button link"
+            },
+            {
+              "name": "validUntil",
+              "type": "string",
+              "format": "date",
+              "required": false,
+              "layer": "Offer / fine print"
+            }
           ],
           "sample": {
             "offerId": "3f8c1e64-2a77-4c1b-9d2e-58f0a1b7c934",
@@ -127,22 +271,38 @@
           }
         }
       },
-      "states": ["default", "loading", "empty"]
+      "states": [
+        "default",
+        "loading",
+        "empty"
+      ]
     },
     {
       "id": "rate-calculator",
       "label": "Repayment estimate",
       "role": "interactive",
       "component": "@bank/ui/Calculator@1.1",
-      "placement": { "column": 1, "span": 8, "row": 4 },
+      "placement": {
+        "column": 1,
+        "span": 8,
+        "row": 4
+      },
       "props": {
-        "principalRange": [50000, 2000000],
-        "termMonthsRange": [12, 120],
+        "principalRange": [
+          50000,
+          2000000
+        ],
+        "termMonthsRange": [
+          12,
+          120
+        ],
         "annualRatePct": 6.9,
         "currency": "CZK"
       },
       "data_props": [],
-      "states": ["default"],
+      "states": [
+        "default"
+      ],
       "notes": "No data_props at all. Already shipped as liferay-workspace/client-extensions/examplebank-repayment-estimate."
     },
     {
@@ -150,11 +310,75 @@
       "label": "Hero art",
       "role": "decoration",
       "component": null,
-      "placement": { "column": 9, "span": 4, "row": 1 },
-      "props": { "asset": "assets/hero-savings.svg", "alt": "" },
+      "placement": {
+        "column": 9,
+        "span": 4,
+        "row": 1
+      },
+      "props": {
+        "asset": "assets/hero-savings.svg",
+        "alt": ""
+      },
       "data_props": [],
-      "states": ["default"],
+      "states": [
+        "default"
+      ],
       "notes": "Raw art, no approved component. Exploration, not a contract — the UNBOUND verdict."
+    },
+    {
+      "id": "payments-tile",
+      "label": "Pending payments",
+      "role": "data-panel",
+      "component": "@bank/ui/ActivityList@3.0",
+      "placement": {
+        "column": 9,
+        "span": 4,
+        "row": 4
+      },
+      "props": {
+        "groupByDay": false
+      },
+      "data_props": [
+        "entries"
+      ],
+      "data_shape": {
+        "entries": {
+          "fields": [
+            {
+              "name": "scheduledFor",
+              "type": "string",
+              "format": "date",
+              "required": true,
+              "layer": "Row / date"
+            },
+            {
+              "name": "payee",
+              "type": "string",
+              "required": true,
+              "layer": "Row / payee"
+            },
+            {
+              "name": "amount",
+              "type": "string",
+              "required": true,
+              "layer": "Row / amount"
+            }
+          ],
+          "sample": [
+            {
+              "scheduledFor": "2026-08-07",
+              "payee": "Pražská energetika",
+              "amount": "-1840.00"
+            }
+          ]
+        }
+      },
+      "states": [
+        "default",
+        "loading",
+        "empty",
+        "error"
+      ]
     }
   ]
 }
