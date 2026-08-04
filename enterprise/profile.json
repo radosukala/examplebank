@@ -1,0 +1,21 @@
+{
+  "$comment": [
+    "The Enterprise Profile — the customer's own truth, in the customer's own words.",
+    "",
+    "Note what is NOT here: no vendored backend parts, no registry, no attestations from us.",
+    "A bank has its own components, its own catalog and its own runtime. A tool that asks it",
+    "to adopt a competing parts catalog reframes the vendor as a backend supplier and loses",
+    "the architect in the first meeting."
+  ],
+  "profile_version": 1,
+  "organization": "Example Bank",
+  "catalog": { "source": "catalog/catalog-info.yaml" },
+  "components": { "source": "components/library.json" },
+  "runtime": { "target": "liferay-7.4-custom-element" },
+  "bindings": { "source": "enterprise/bindings.json" },
+  "policy": {
+    "allowed_lifecycles": ["production"],
+    "deny": [],
+    "blocking": ["OFF_MENU", "DEPRECATED", "UNDECLARED"]
+  }
+}

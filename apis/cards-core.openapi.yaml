@@ -1,0 +1,177 @@
+# The core banking card master. It is real, it is catalogued, it is owned by the same
+# group as the channel projection — and a customer-facing channel may not call it.
+#
+# This file is the argument. CardMaster carries a full PAN and an embossed name; the
+# refusal on /dashboard "cards-tile" is not bureaucracy, it is this response shape
+# arriving in a browser. Keep it here so the demo can open it on screen.
+openapi: 3.0.1
+info:
+  title: Cards core
+  version: 8.6.2
+  description: >-
+    Core banking card master. Internal systems only. Deprecated for new consumers:
+    use api:default/cards-valid-for-user, which returns the channel-safe projection.
+  contact:
+    name: Cards Platform
+    url: https://backstage.examplebank.cz/catalog/default/group/cards-platform
+  license:
+    name: Example Bank internal — not for external distribution
+    url: https://intranet.examplebank.cz/api-governance/spec-terms
+  x-catalog-ref: api:default/cards-core
+  x-data-classification: pci-in-scope
+  x-channel-safe: false
+  x-superseded-by: api:default/cards-valid-for-user
+
+servers:
+  - url: https://core-internal.examplebank.cz
+    description: >-
+      Core network zone. Not routable from a customer channel, and the mesh requires a
+      mutual-TLS service identity in addition to the token below.
+
+security:
+  - serviceIdentity: [cards.master.read]
+
+paths:
+  /core/v1/customers/{customerId}/cards:
+    get:
+      operationId: getCustomerCardMasters
+      summary: Card master records for a customer
+      deprecated: true
+      tags: [core]
+      security:
+        - serviceIdentity: [cards.master.read]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: >-
+            Full card master records. Never return this body to a browser — see CardMaster.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardMasterPage"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+components:
+  securitySchemes:
+    serviceIdentity:
+      type: oauth2
+      description: >-
+        Service-to-service credential issued to a registered core consumer. Customer
+        session tokens are rejected outright — there is no customer-facing grant.
+      flows:
+        clientCredentials:
+          tokenUrl: https://id-internal.examplebank.cz/oauth2/token
+          scopes:
+            cards.master.read: Read card master records, including the PAN.
+
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: true
+      description: Propagated unchanged across every hop. Required on all Example Bank operations.
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    CardMasterPage:
+      type: object
+      required: [items, totalCount]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CardMaster"
+        totalCount:
+          type: integer
+          format: int32
+          minimum: 0
+
+    CardMaster:
+      description: >-
+        The reason this operation is not channel-safe. @bank/ui/CardList@4.2 accepts
+        CardSummary and cannot render this shape, so the component contract and the
+        catalog lifecycle refuse the same binding for the same underlying reason.
+      type: object
+      required: [cardId, pan, embossedName, status, productCode]
+      properties:
+        cardId:
+          type: string
+          format: uuid
+        pan:
+          type: string
+          description: Full primary account number. PCI in scope.
+          pattern: "^[0-9]{16}$"
+        embossedName:
+          type: string
+        expiry:
+          type: string
+          pattern: "^[0-9]{2}/[0-9]{2}$"
+        cvvIndicator:
+          type: string
+          enum: [present, absent]
+        status:
+          type: string
+          enum: [ACTIVE, BLOCKED, STOLEN, EXPIRED, PENDING_ISSUE]
+        productCode:
+          type: string
+          description: Core product code, not a customer-facing name.
+          example: DEB-CZ-STD-04
+        ledgerAccountKey:
+          type: string
+          description: Internal ledger key. Must never leave the core zone.
+
+    Problem:
+      description: RFC 9457 problem details. The single error shape for every Example Bank API.
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        correlationId:
+          type: string
+          format: uuid
+
+  responses:
+    Unauthorized:
+      description: No valid service identity.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Forbidden:
+      description: Caller is not a registered core consumer for this scope.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    TooManyRequests:
+      description: Core rate limit exceeded.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    InternalError:
+      description: Unexpected failure. Never carries upstream detail.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }

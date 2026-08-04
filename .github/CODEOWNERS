@@ -1,0 +1,35 @@
+# Example Bank — code owners.
+#
+# This file is here because the bank already has one. pen.dev does not ship an
+# approvals model: an exception routes to whoever owns the thing in CODEOWNERS,
+# which is already argued over, already maintained, and already enforced on the
+# same merge button the required check blocks.
+#
+# The join is the slug. `group:cards-platform` in catalog/catalog-info.yaml finds
+# @examplebank/cards-platform here. When no handle matches, the check says "no
+# CODEOWNERS entry" rather than inventing a plausible one — a refusal routed to the
+# wrong team is worse than one routed nowhere.
+
+# The service catalog is the rule everything else is judged against. Changing it
+# changes what may ship, so the platform group reviews every edit to it.
+/catalog/                       @examplebank/platform-architecture
+
+# Each API specification is owned by the group that owns the service.
+/apis/cards-*.openapi.yaml      @examplebank/cards-platform
+/apis/accounts-*.openapi.yaml   @examplebank/accounts-platform
+/apis/identity-*.openapi.yaml   @examplebank/identity-platform
+
+# The approved component library and the design that consumes it.
+/components/                    @examplebank/channel-design-system
+/design/                        @examplebank/retail-channel
+
+# What each element on a screen stands on. This is the file the required check
+# annotates line by line when it refuses.
+/enterprise/                    @examplebank/retail-channel @examplebank/platform-architecture
+
+# The runtime. Client extensions are deployed by the channel platform team.
+/liferay-workspace/             @examplebank/channel-platform
+
+# Proposed seams land here before anyone builds them. Two groups on purpose: the
+# team who needs it, and the architects who decide whether it should exist.
+/seams/                         @examplebank/platform-architecture @examplebank/retail-channel

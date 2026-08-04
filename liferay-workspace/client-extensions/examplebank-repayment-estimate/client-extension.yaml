@@ -1,0 +1,30 @@
+# Example Bank's OWN client extension, written by their channel team before we arrived.
+#
+# It is here to be the house style. What we generate in build order step 4 has to look
+# like something this team already writes, and "looks like" is only checkable against a
+# real example. Nothing in this folder is our output.
+#
+# Layout, keys and defaults verified against Liferay's documentation and their shipped
+# samples — see ../../README.md for the citation table, including the two keys we
+# deliberately did NOT use and why.
+#
+# `assemble` is a TOP-LEVEL key, a sibling of the extension id and not a child of it.
+# This is the detail most hand-written examples get wrong; it is how liferay-portal's
+# own liferay-sample-custom-element-1 and -6 are written.
+assemble:
+    -   from: assets
+        into: static
+
+examplebank-repayment-estimate:
+    cssURLs:
+        -   repayment-estimate.css
+    htmlElementName: examplebank-repayment-estimate
+    instanceable: false
+    name: Repayment estimate
+    portletCategoryName: category.client-extensions
+    type: customElement
+    urls:
+        -   repayment-estimate.js
+    # Loads the script with type="module": no globals leak into the page, which is the
+    # reason to turn it on for a hand-written file that imports nothing.
+    useESM: true

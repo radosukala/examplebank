@@ -1,0 +1,2 @@
+# Bind-mounted to /mnt/liferay/deploy. The Liferay container symlinks that folder to
+# [Liferay Home]/deploy, so a LUFFA zip dropped here is auto-deployed.

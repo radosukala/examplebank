@@ -1,0 +1,166 @@
+# The channel-safe card projection. Linked from catalog/catalog-info.yaml via
+# Backstage's `spec.definition.$text`, so the catalog entry and this file cannot drift.
+#
+# House style is documented once in ../README.md and applied identically in all four
+# specs — a generated seam stub has to match it, and it can only match a style that is
+# actually consistent.
+openapi: 3.0.1
+info:
+  title: Cards valid for user
+  version: 1.4.0
+  description: >-
+    Valid, non-expired cards for the authenticated user. The channel-safe projection:
+    it never returns a primary account number, an embossed name or a CVV indicator,
+    which is what makes it the operation a customer-facing tile is permitted to call.
+  contact:
+    name: Cards Platform
+    url: https://backstage.examplebank.cz/catalog/default/group/cards-platform
+  license:
+    name: Example Bank internal — not for external distribution
+    url: https://intranet.examplebank.cz/api-governance/spec-terms
+  x-catalog-ref: api:default/cards-valid-for-user
+  x-data-classification: pci-out-of-scope
+  x-channel-safe: true
+
+servers:
+  - url: https://api.examplebank.cz
+    description: Experience tier (BFF). Reachable from customer channels.
+
+security:
+  - customerSession: [cards.read]
+
+paths:
+  /experience/dashboard/cards:
+    get:
+      operationId: getDashboardCards
+      summary: Cards to show on the retail dashboard
+      tags: [dashboard]
+      security:
+        - customerSession: [cards.read]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - name: includeBlocked
+          in: query
+          required: false
+          description: Include cards the customer has temporarily frozen.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: The customer's valid cards.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardSummaryPage"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+components:
+  securitySchemes:
+    customerSession:
+      type: oauth2
+      description: Customer session token issued by api:default/identity-api.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://id.examplebank.cz/oauth2/authorize
+          tokenUrl: https://id.examplebank.cz/oauth2/token
+          scopes:
+            cards.read: Read the authenticated customer's cards.
+
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: true
+      description: Propagated unchanged across every hop. Required on all Example Bank operations.
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    CardSummaryPage:
+      type: object
+      required: [items, totalCount]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CardSummary"
+        totalCount:
+          type: integer
+          format: int32
+          minimum: 0
+
+    CardSummary:
+      type: object
+      required: [cardId, displayName, maskedPan, brand, status]
+      properties:
+        cardId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+          example: Everyday debit
+        maskedPan:
+          type: string
+          description: Last four digits only. The full PAN is never returned by this API.
+          pattern: '^•••• [0-9]{4}$'
+          example: "•••• 4242"
+        brand:
+          type: string
+          enum: [visa, mastercard]
+        status:
+          type: string
+          enum: [active, frozen, expiring]
+        expiresOn:
+          type: string
+          format: date
+          description: Month granularity; the day is always the last of the month.
+
+    Problem:
+      description: RFC 9457 problem details. The single error shape for every Example Bank API.
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          example: https://errors.examplebank.cz/session-expired
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        correlationId:
+          type: string
+          format: uuid
+
+  responses:
+    Unauthorized:
+      description: No valid customer session.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Forbidden:
+      description: Session is valid but lacks the required scope.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    TooManyRequests:
+      description: Channel rate limit exceeded.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    InternalError:
+      description: Unexpected failure. Never carries upstream detail.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }

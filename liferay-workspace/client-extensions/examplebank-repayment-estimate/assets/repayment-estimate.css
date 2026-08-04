@@ -1,0 +1,77 @@
+/*
+ * Values come from the token set in ../../../../components/library.json — the token
+ * name is in a comment beside each one, because a stylesheet that silently forks the
+ * design system is how a component library stops being the source of truth.
+ *
+ * cssURLs puts this file in the document head, so every selector is prefixed. This is
+ * global CSS in a portal page, not a scoped stylesheet.
+ */
+
+.eb-repay {
+	background: #ffffff; /* color.surface.raised */
+	border-radius: 12px; /* radius.card */
+	color: #12171f; /* color.text.primary */
+	display: grid;
+	font: 400 15px/1.5 'Inter', system-ui, sans-serif; /* type.body */
+	gap: 16px; /* space.4 */
+	padding: 24px; /* space.6 */
+}
+
+.eb-repay__title {
+	font: 600 28px/1.2 'Inter', system-ui, sans-serif; /* type.display */
+	margin: 0;
+}
+
+.eb-repay__field {
+	display: grid;
+	gap: 8px; /* space.2 */
+	grid-template-columns: 1fr auto;
+}
+
+.eb-repay__label {
+	color: #5b6472; /* color.text.muted */
+	grid-column: 1 / -1;
+}
+
+.eb-repay__input {
+	accent-color: #0b3d91; /* color.brand.primary */
+	width: 100%;
+}
+
+.eb-repay__value {
+	font: 500 14px/1.4 'JetBrains Mono', ui-monospace, monospace; /* type.mono */
+	justify-self: end;
+	white-space: nowrap;
+}
+
+.eb-repay__result {
+	align-items: baseline;
+	background: #f4f6fa; /* color.surface.sunken */
+	border-radius: 12px; /* radius.card */
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px; /* space.2 */
+	margin: 0;
+	padding: 16px; /* space.4 */
+}
+
+.eb-repay__amount {
+	color: #0b3d91; /* color.brand.primary */
+	font: 600 28px/1.2 'Inter', system-ui, sans-serif; /* type.display */
+}
+
+.eb-repay__caption {
+	color: #5b6472; /* color.text.muted */
+}
+
+.eb-repay__disclaimer {
+	color: #5b6472; /* color.text.muted */
+	font-size: 13px;
+	margin: 0;
+}
+
+/* The focus ring is a WCAG 2.2 AA requirement in library.json, not decoration. */
+.eb-repay__input:focus-visible {
+	outline: 2px solid #0b3d91; /* color.brand.primary */
+	outline-offset: 2px;
+}

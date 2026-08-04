@@ -1,0 +1,149 @@
+# Current and available balance for the authenticated customer.
+# Same house style as the other three specs — see ../README.md.
+openapi: 3.0.1
+info:
+  title: Accounts balance
+  version: 2.1.0
+  description: >-
+    Current and available balance for the authenticated user's accounts. Experience-tier
+    projection: no ledger entries, no counterparty data, no internal account keys.
+  contact:
+    name: Accounts Platform
+    url: https://backstage.examplebank.cz/catalog/default/group/accounts-platform
+  license:
+    name: Example Bank internal — not for external distribution
+    url: https://intranet.examplebank.cz/api-governance/spec-terms
+  x-catalog-ref: api:default/accounts-balance
+  x-data-classification: confidential
+  x-channel-safe: true
+
+servers:
+  - url: https://api.examplebank.cz
+    description: Experience tier (BFF). Reachable from customer channels.
+
+security:
+  - customerSession: [accounts.read]
+
+paths:
+  /experience/dashboard/balance:
+    get:
+      operationId: getDashboardBalance
+      summary: Balance for the account shown on the retail dashboard
+      tags: [dashboard]
+      security:
+        - customerSession: [accounts.read]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - name: accountId
+          in: query
+          required: false
+          description: Defaults to the customer's primary current account.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: The balance as of the stated instant.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Balance"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+components:
+  securitySchemes:
+    customerSession:
+      type: oauth2
+      description: Customer session token issued by api:default/identity-api.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://id.examplebank.cz/oauth2/authorize
+          tokenUrl: https://id.examplebank.cz/oauth2/token
+          scopes:
+            accounts.read: Read the authenticated customer's account balances.
+
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: true
+      description: Propagated unchanged across every hop. Required on all Example Bank operations.
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Balance:
+      type: object
+      required: [accountId, currency, current, available, asOf]
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        accountName:
+          type: string
+          example: Everyday current account
+        currency:
+          type: string
+          description: ISO 4217.
+          pattern: "^[A-Z]{3}$"
+          example: CZK
+        current:
+          type: string
+          description: Decimal string, never a float. Money is not a double.
+          pattern: '^-?[0-9]+\.[0-9]{2}$'
+          example: "48210.55"
+        available:
+          type: string
+          pattern: '^-?[0-9]+\.[0-9]{2}$'
+          example: "47010.55"
+        asOf:
+          type: string
+          format: date-time
+
+    Problem:
+      description: RFC 9457 problem details. The single error shape for every Example Bank API.
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        correlationId:
+          type: string
+          format: uuid
+
+  responses:
+    Unauthorized:
+      description: No valid customer session.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Forbidden:
+      description: Session is valid but lacks the required scope.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    TooManyRequests:
+      description: Channel rate limit exceeded.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    InternalError:
+      description: Unexpected failure. Never carries upstream detail.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }

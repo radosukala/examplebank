@@ -1,0 +1,66 @@
+{
+  "$comment": [
+    "What each node on the canvas stands on. DECLARED, not discovered — we resolve",
+    "statements the enterprise makes, we do not observe network traffic. That is why",
+    "UNDECLARED exists as a verdict and why it means unknown, not safe.",
+    "",
+    "Three of these are deliberately wrong, and they fail in the three different ways",
+    "that matter to an architect:",
+    "  cards-tile     -> cards-core        catalogued, but deprecated and not for a channel.",
+    "                                      The catalog names its successor, so the refusal",
+    "                                      STATES the route to yes.",
+    "  offers-tile    -> offers-engine     nobody catalogued it. The alternative has to be",
+    "                                      inferred, and is labelled as a guess.",
+    "  activity-tile  -> (nothing)         approved component, no declared capability.",
+    "                                      Unknown, not safe."
+  ],
+  "manifest_version": 1,
+  "screens": {
+    "/dashboard": {
+      "nodes": {
+        "cards-tile": {
+          "label": "Your cards",
+          "role": "data-panel",
+          "component": "@bank/ui/CardList@4.2",
+          "capability": "api:default/cards-valid-for-user"
+        },
+        "balance-tile": {
+          "label": "Balance",
+          "role": "data-panel",
+          "component": "@bank/ui/BalanceHero@2.1",
+          "capability": "api:default/accounts-balance"
+        },
+        "offers-tile": {
+          "label": "Offers for you",
+          "role": "data-panel",
+          "component": "@bank/ui/PromoCard@1.4",
+          "capability": "api:default/offers-engine"
+        },
+        "activity-tile": {
+          "label": "Recent activity",
+          "role": "data-panel",
+          "component": "@bank/ui/ActivityList@3.0",
+          "capability": "api:default/offers-engine"
+        },
+        "greeting": {
+          "label": "Good morning, {name}",
+          "role": "display",
+          "component": "@bank/ui/Heading@2.0",
+          "capability": "api:default/identity-api"
+        },
+        "rate-calculator": {
+          "label": "Repayment estimate",
+          "role": "interactive",
+          "component": "@bank/ui/Calculator@1.1",
+          "capability": "none"
+        },
+        "hero-illustration": {
+          "label": "Hero art",
+          "role": "decoration",
+          "component": null,
+          "capability": null
+        }
+      }
+    }
+  }
+}

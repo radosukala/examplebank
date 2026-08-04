@@ -1,0 +1,140 @@
+# Sessions, SSO and token exchange. Tier 1 — every channel stands on this one.
+# Same house style as the other three specs — see ../README.md.
+openapi: 3.0.1
+info:
+  title: Identity
+  version: 5.0.1
+  description: >-
+    Sessions, SSO and token exchange. The dashboard uses exactly one operation from it:
+    reading the current session so a greeting can name the customer.
+  contact:
+    name: Identity Platform
+    url: https://backstage.examplebank.cz/catalog/default/group/identity-platform
+  license:
+    name: Example Bank internal — not for external distribution
+    url: https://intranet.examplebank.cz/api-governance/spec-terms
+  x-catalog-ref: api:default/identity-api
+  x-data-classification: confidential
+  x-channel-safe: true
+
+servers:
+  - url: https://api.examplebank.cz
+    description: Experience tier (BFF). Reachable from customer channels.
+
+security:
+  - customerSession: [profile.read]
+
+paths:
+  /identity/v1/session:
+    get:
+      operationId: getCurrentSession
+      summary: The authenticated customer's session
+      tags: [session]
+      security:
+        - customerSession: [profile.read]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: The current session. Carries a display name, never a national ID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+components:
+  securitySchemes:
+    customerSession:
+      type: oauth2
+      description: Customer session token issued by this API.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://id.examplebank.cz/oauth2/authorize
+          tokenUrl: https://id.examplebank.cz/oauth2/token
+          scopes:
+            profile.read: Read the authenticated customer's display profile.
+
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: true
+      description: Propagated unchanged across every hop. Required on all Example Bank operations.
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Session:
+      type: object
+      required: [subject, displayName, locale, authenticatedAt, assuranceLevel]
+      properties:
+        subject:
+          type: string
+          format: uuid
+          description: Pseudonymous customer identifier. Not the national ID, not the client number.
+        displayName:
+          type: string
+          description: Given name only, as the customer chose to be addressed.
+          example: Petra
+        locale:
+          type: string
+          example: cs-CZ
+        authenticatedAt:
+          type: string
+          format: date-time
+        assuranceLevel:
+          type: string
+          enum: [aal1, aal2, aal3]
+          description: NIST-style assurance level reached by this session.
+        expiresAt:
+          type: string
+          format: date-time
+
+    Problem:
+      description: RFC 9457 problem details. The single error shape for every Example Bank API.
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        correlationId:
+          type: string
+          format: uuid
+
+  responses:
+    Unauthorized:
+      description: No valid customer session.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Forbidden:
+      description: Session is valid but lacks the required scope.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    TooManyRequests:
+      description: Channel rate limit exceeded.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    InternalError:
+      description: Unexpected failure. Never carries upstream detail.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }

@@ -1,0 +1,191 @@
+{
+  "$comment": [
+    "Example Bank's OWN approved component library — the manifest enterprise/profile.json",
+    "has always pointed at. We do not publish this, version it, or offer a competing one.",
+    "A bank has a design system; a tool that arrives with its own reframes the vendor as a",
+    "backend supplier and loses the architect in the first meeting.",
+    "",
+    "Two joins make this manifest load-bearing rather than decorative:",
+    "  consumes.schema  the API schema a component's data prop expects. A component bound to",
+    "                   an operation that returns a different shape is a real defect, and it",
+    "                   is checkable without running anything.",
+    "  runtime          the client extension that already ships this component, keyed by the",
+    "                   profile's runtime.target. Present only where one genuinely exists.",
+    "",
+    "Every component the dashboard uses is approved here at the version it uses, ON PURPOSE.",
+    "fixtures/bank fails in three ways and all three are about the CAPABILITY behind a node,",
+    "never the component in front of it. Adding a component failure here would blur the one",
+    "distinction the six verdicts exist to draw."
+  ],
+  "library_version": 1,
+  "organization": "Example Bank",
+  "package_scope": "@bank/ui",
+  "owner": "group:channel-design-system",
+  "built_on": {
+    "design_system": "Clay",
+    "version": "3.x",
+    "note": "Clay is Liferay's implementation of the Lexicon design language. @bank/ui wraps Clay primitives so the bank's channel components keep working when the portal is upgraded."
+  },
+
+  "$comment_states": [
+    "The library-wide state contract. A component that renders data must have a drawn state",
+    "for every one of these, because the states nobody draws are the ones IT invents later."
+  ],
+  "states": ["default", "loading", "empty", "error", "unauthorized"],
+
+  "tokens": {
+    "color.brand.primary": "#0b3d91",
+    "color.brand.accent": "#e8a33d",
+    "color.surface.raised": "#ffffff",
+    "color.surface.sunken": "#f4f6fa",
+    "color.text.primary": "#12171f",
+    "color.text.muted": "#5b6472",
+    "color.state.positive": "#1a7f4b",
+    "color.state.negative": "#b3261e",
+    "space.2": "8px",
+    "space.4": "16px",
+    "space.6": "24px",
+    "radius.card": "12px",
+    "type.display": "600 28px/1.2 'Inter', system-ui, sans-serif",
+    "type.body": "400 15px/1.5 'Inter', system-ui, sans-serif",
+    "type.mono": "500 14px/1.4 'JetBrains Mono', ui-monospace, monospace"
+  },
+
+  "components": [
+    {
+      "id": "@bank/ui/CardList",
+      "name": "Card list",
+      "owner": "group:channel-design-system",
+      "versions": [
+        { "version": "4.2", "status": "approved", "released": "2026-03-11" },
+        {
+          "version": "4.1",
+          "status": "deprecated",
+          "superseded_by": "4.2",
+          "note": "4.1 rendered the full PAN when the API returned one. Withdrawn after the channel review; 4.2 accepts maskedPan only."
+        }
+      ],
+      "props": {
+        "cards": { "type": "CardSummary[]", "required": true, "description": "Channel-safe card projections." },
+        "onSelect": { "type": "(cardId: string) => void", "required": false },
+        "emptyMessage": { "type": "string", "required": false, "default": "No active cards." }
+      },
+      "states": ["default", "loading", "empty", "error"],
+      "tokens": ["color.surface.raised", "color.text.primary", "space.4", "radius.card", "type.mono"],
+      "a11y": { "role": "list", "requires": ["accessible-name"], "wcag": "2.2 AA" },
+      "consumes": {
+        "schema": "CardSummary",
+        "spec": "apis/cards-valid-for-user.openapi.yaml",
+        "note": "Accepts the channel projection only. api:default/cards-core returns CardMaster, which carries a full PAN and does not fit this prop."
+      }
+    },
+    {
+      "id": "@bank/ui/BalanceHero",
+      "name": "Balance hero",
+      "owner": "group:channel-design-system",
+      "versions": [{ "version": "2.1", "status": "approved", "released": "2026-01-22" }],
+      "props": {
+        "balance": { "type": "Balance", "required": true },
+        "showAvailable": { "type": "boolean", "required": false, "default": true }
+      },
+      "states": ["default", "loading", "error"],
+      "tokens": ["color.brand.primary", "color.text.primary", "type.display", "space.6"],
+      "a11y": { "requires": ["accessible-name", "currency-announced"], "wcag": "2.2 AA" },
+      "consumes": { "schema": "Balance", "spec": "apis/accounts-balance.openapi.yaml" }
+    },
+    {
+      "id": "@bank/ui/PromoCard",
+      "name": "Promotional card",
+      "owner": "group:channel-design-system",
+      "versions": [{ "version": "1.4", "status": "approved", "released": "2025-11-04" }],
+      "props": {
+        "offer": { "type": "Offer", "required": true },
+        "dismissible": { "type": "boolean", "required": false, "default": true }
+      },
+      "states": ["default", "loading", "empty"],
+      "tokens": ["color.brand.accent", "color.surface.raised", "radius.card", "space.4"],
+      "a11y": { "requires": ["accessible-name"], "wcag": "2.2 AA" },
+      "consumes": {
+        "schema": "Offer",
+        "spec": null,
+        "note": "No sanctioned spec defines Offer. The component was approved against a design mock, which is exactly how a screen ends up bound to an uncatalogued service."
+      }
+    },
+    {
+      "id": "@bank/ui/ActivityList",
+      "name": "Activity list",
+      "owner": "group:channel-design-system",
+      "versions": [{ "version": "3.0", "status": "approved", "released": "2026-02-17" }],
+      "props": {
+        "entries": { "type": "ActivityEntry[]", "required": true },
+        "groupByDay": { "type": "boolean", "required": false, "default": true }
+      },
+      "states": ["default", "loading", "empty", "error"],
+      "tokens": ["color.surface.sunken", "color.text.muted", "space.2", "type.body"],
+      "a11y": { "role": "list", "requires": ["accessible-name"], "wcag": "2.2 AA" },
+      "consumes": {
+        "schema": "ActivityEntry",
+        "spec": null,
+        "note": "Approved, and nothing in the catalog produces ActivityEntry. This is the UNDECLARED verdict seen from the component side."
+      }
+    },
+    {
+      "id": "@bank/ui/Heading",
+      "name": "Heading",
+      "owner": "group:channel-design-system",
+      "versions": [{ "version": "2.0", "status": "approved", "released": "2025-09-30" }],
+      "props": {
+        "level": { "type": "1 | 2 | 3 | 4", "required": true },
+        "text": { "type": "string", "required": true },
+        "tone": { "type": "'primary' | 'muted'", "required": false, "default": "primary" }
+      },
+      "states": ["default"],
+      "tokens": ["color.text.primary", "color.text.muted", "type.display"],
+      "a11y": { "requires": ["heading-order"], "wcag": "2.2 AA" },
+      "consumes": null
+    },
+    {
+      "id": "@bank/ui/Calculator",
+      "name": "Repayment calculator",
+      "owner": "group:channel-design-system",
+      "versions": [{ "version": "1.1", "status": "approved", "released": "2026-04-08" }],
+      "props": {
+        "principalRange": { "type": "[number, number]", "required": true },
+        "termMonthsRange": { "type": "[number, number]", "required": true },
+        "annualRatePct": { "type": "number", "required": true },
+        "currency": { "type": "string", "required": false, "default": "CZK" }
+      },
+      "states": ["default"],
+      "tokens": ["color.surface.raised", "color.brand.primary", "space.4", "radius.card", "type.mono"],
+      "a11y": { "requires": ["labelled-inputs", "live-region-result"], "wcag": "2.2 AA" },
+      "consumes": null,
+      "$comment_self_contained": [
+        "Computes locally from its inputs and calls nothing. This is the referent for the",
+        "SELF_CONTAINED verdict — a real widget that genuinely reaches nothing, which is what",
+        "keeps UNDECLARED meaning something."
+      ],
+      "runtime": {
+        "liferay-7.4-custom-element": {
+          "client_extension_id": "examplebank-repayment-estimate",
+          "html_element_name": "examplebank-repayment-estimate",
+          "workspace": "liferay-workspace/client-extensions/examplebank-repayment-estimate"
+        }
+      }
+    },
+    {
+      "id": "@bank/ui/Button",
+      "name": "Button",
+      "owner": "group:channel-design-system",
+      "versions": [{ "version": "5.0", "status": "approved", "released": "2026-05-19" }],
+      "props": {
+        "variant": { "type": "'primary' | 'secondary' | 'ghost'", "required": true },
+        "label": { "type": "string", "required": true },
+        "disabled": { "type": "boolean", "required": false, "default": false }
+      },
+      "states": ["default", "loading"],
+      "tokens": ["color.brand.primary", "space.2", "radius.card", "type.body"],
+      "a11y": { "requires": ["accessible-name", "focus-visible"], "wcag": "2.2 AA" },
+      "consumes": null
+    }
+  ]
+}

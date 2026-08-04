@@ -1,0 +1,81 @@
+# The gate.
+#
+# A CLI refusal is bypassed by not running the CLI. This check is REQUIRED on main,
+# so the merge button is disabled by GitHub rather than by a tool someone can skip.
+#
+#   Settings → Rules → Rulesets → Require status checks to pass
+#   → "Bindings resolve against the catalog"
+#
+# Notes for whoever reviews this before enabling it somewhere real:
+#
+#   - No third-party actions. Only actions/checkout, actions/setup-node and
+#     actions/upload-artifact — all first-party. A governance check that pulls an
+#     unpinned action off the marketplace is not a governance check.
+#   - No secret is required to BLOCK. PEN_RECEIPT_KEY_PEM only signs the receipt
+#     for a change that already passed, so a fork PR without secrets is still gated.
+#   - The tool writes nothing. Every file produced below comes from a redirect in
+#     this workflow, where you can read it.
+#   - This repository VENDORS the tool under .pen-enterprise/ because the package
+#     is not published yet. Once it is, all three invocations collapse to
+#     `npx --yes @pen-enterprise/verify@<tag> pen-enterprise-ci`. Pin a tag either
+#     way: a governance check floating on @latest is a supply chain, not a control.
+name: pen.dev Enterprise
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  bindings:
+    name: Bindings resolve against the catalog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The check resolves the whole profile, not the diff — but naming the
+          # touched files in the report needs both sides of the comparison.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install the vendored resolver
+        run: npm install --prefix .pen-enterprise --omit=dev --no-audit --no-fund
+
+      - name: List the governed files this pull request touches
+        if: github.event_name == 'pull_request'
+        run: |
+          git diff --name-only "origin/${{ github.base_ref }}...HEAD" > changed.txt
+          cat changed.txt
+
+      - name: Evidence
+        if: always()
+        env:
+          PEN_RECEIPT_KEY_PEM: ${{ secrets.PEN_RECEIPT_KEY_PEM }}
+        run: |
+          touch changed.txt
+          node .pen-enterprise/dist/ci.js --root . --changed-from changed.txt \
+            --summary >> "$GITHUB_STEP_SUMMARY"
+          node .pen-enterprise/dist/ci.js --root . --changed-from changed.txt \
+            --evidence > evidence.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pen-enterprise-evidence
+          path: evidence.json
+
+      # Last, and the only step that can fail. The reporting above runs with
+      # `if: always()` so a red check still explains itself — if the report were
+      # the failing step, the explanation would be the thing that went missing.
+      - name: Resolve every element against the catalog
+        env:
+          PEN_RECEIPT_KEY_PEM: ${{ secrets.PEN_RECEIPT_KEY_PEM }}
+        run: |
+          node .pen-enterprise/dist/ci.js --root . --changed-from changed.txt

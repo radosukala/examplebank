@@ -1,0 +1,13 @@
+{
+  "name": "pen-enterprise-vendored",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Compiled snapshot of @pen-enterprise/verify, vendored until the package is published.",
+  "dependencies": {
+    "yaml": "^2.9.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

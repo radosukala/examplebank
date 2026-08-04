@@ -1,0 +1,20 @@
+/*
+ * A Liferay Workspace applies its plugin from settings.gradle, which is what makes
+ * `client-extensions/` mean anything to the build. Shape read from liferay-portal's own
+ * workspaces/liferay-sample-workspace/settings.gradle; the internal mavenLocal and
+ * ../../.m2-tmp repositories that file carries are dropped, because a customer resolves
+ * the plugin from Liferay's public repository.
+ */
+buildscript {
+	dependencies {
+		classpath group: "com.liferay", name: "com.liferay.gradle.plugins.workspace", version: "17.1.10"
+	}
+
+	repositories {
+		maven {
+			url "https://repository-cdn.liferay.com/nexus/content/groups/public"
+		}
+	}
+}
+
+apply plugin: "com.liferay.workspace"
