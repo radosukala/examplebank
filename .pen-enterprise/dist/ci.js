@@ -13,6 +13,7 @@
  *       Resolve, print GitHub annotations, exit 1 if the merge must be blocked.
  *   pen-enterprise-ci --summary     markdown for $GITHUB_STEP_SUMMARY. Always exits 0.
  *   pen-enterprise-ci --evidence    the manifest, as JSON. Always exits 0.
+ *   pen-enterprise-ci --slack       a Block Kit payload to curl at THEIR webhook.
  *
  * The reporting modes always exit 0 on purpose: a workflow renders them with
  * `if: always()`, and a reporting step that fails would mask which step is the
@@ -30,6 +31,7 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 import { RefusedError, buildChangePack, readContext } from "./pack.js";
 import { annotations, evidence, summary } from "./render/ci-report.js";
+import { slackMessage } from "./render/slack.js";
 const TOOL = "pen-enterprise-ci";
 const LOCATIONS = [".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS"];
 export async function readCodeowners(root) {
@@ -162,6 +164,7 @@ async function main() {
             "changed-from": { type: "string" },
             summary: { type: "boolean" },
             evidence: { type: "boolean" },
+            slack: { type: "boolean" },
         },
     });
     const root = path.resolve(values.root ?? ".");
@@ -177,6 +180,18 @@ async function main() {
     }
     if (values.evidence) {
         process.stdout.write(evidence(input));
+        return;
+    }
+    if (values.slack) {
+        // We render it; their webhook posts it. Nothing here holds a token or opens
+        // a socket — the workflow curls this at a URL kept in their own secret.
+        const env = process.env;
+        process.stdout.write(JSON.stringify(slackMessage(input, {
+            repo: env.GITHUB_REPOSITORY ?? null,
+            run_url: env.GITHUB_RUN_ID
+                ? `${env.GITHUB_SERVER_URL ?? "https://github.com"}/${env.GITHUB_REPOSITORY}/actions/runs/${env.GITHUB_RUN_ID}`
+                : null,
+        }), null, 2) + "\n");
         return;
     }
     process.stdout.write(annotations(input));

@@ -16,6 +16,7 @@ export { type Check, type Receipt, type ReceiptArtifact, type ReceiptCapability,
 export { type ComponentLibrary, type DataShape, type DeriveInputs, type Design, type DesignNode, type DesignSource, type FieldEvidence, type Gap, type HouseStyle, type NotASeam, type ProposeOptions, type Seam, type SeamFile, type SeamOperation, type SeamProposal, DEFAULT_DESIGN, deriveSeams, designSource, gapsFor, proposeSeams, readHouseStyle, } from "./seam.js";
 export { type RenderContext, renderSeamFiles } from "./render/seam-artifacts.js";
 export { type ApprovedComponent, type ApprovedLibrary, type BoundNode, type EmbeddedReceipt, type ExportInput, type ExportedFile, type ResolvedOperation, type RuntimeTarget, exported, resolveOperations, } from "./render/target.js";
+export { type SlackMessage, type SlackWhere, slackMessage } from "./render/slack.js";
 export { TARGETS, targetFor } from "./render/targets.js";
 export { LIFERAY_CUSTOM_ELEMENT } from "./render/liferay.js";
 export { daysUntil, exists, readJson, sha256, sha256File, walkFiles } from "./fs.js";

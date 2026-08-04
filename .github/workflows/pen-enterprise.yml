@@ -71,6 +71,27 @@ jobs:
           name: pen-enterprise-evidence
           path: evidence.json
 
+      # Optional, and it holds nothing. We render a Block Kit payload; YOUR
+      # incoming webhook posts it. No bot token, no OAuth grant, no listener,
+      # nothing of ours in your workspace.
+      #
+      # Add SLACK_WEBHOOK_URL as a repository secret to switch it on. Without it
+      # the payload is printed here and nothing is sent, so the feature degrades
+      # into something readable rather than into a failure.
+      - name: Post the decision to Slack
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          node .pen-enterprise/dist/ci.js --root . --slack > slack.json
+          cat slack.json
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then
+            curl -sS -X POST -H 'Content-Type: application/json' \
+              --data @slack.json "$SLACK_WEBHOOK_URL"
+          else
+            echo "SLACK_WEBHOOK_URL is not set — payload printed above, nothing posted."
+          fi
+
       # Last, and the only step that can fail. The reporting above runs with
       # `if: always()` so a red check still explains itself — if the report were
       # the failing step, the explanation would be the thing that went missing.

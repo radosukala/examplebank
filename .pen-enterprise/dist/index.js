@@ -16,6 +16,7 @@ export { RECEIPT_VERSION, canonicalize, generateReceiptKeyPair, issueReceipt, ke
 export { DEFAULT_DESIGN, deriveSeams, designSource, gapsFor, proposeSeams, readHouseStyle, } from "./seam.js";
 export { renderSeamFiles } from "./render/seam-artifacts.js";
 export { exported, resolveOperations, } from "./render/target.js";
+export { slackMessage } from "./render/slack.js";
 export { TARGETS, targetFor } from "./render/targets.js";
 export { LIFERAY_CUSTOM_ELEMENT } from "./render/liferay.js";
 export { daysUntil, exists, readJson, sha256, sha256File, walkFiles } from "./fs.js";
