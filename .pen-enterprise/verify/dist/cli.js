@@ -22,9 +22,13 @@ import { EMPTY_CATALOG, loadCatalog } from "./catalog.js";
 import { checkExport } from "./export-gate.js";
 import { loadProfile } from "./profile.js";
 import { generateReceiptKeyPair, keyIdOf, verifyReceipt } from "./receipt.js";
-import { DEFAULT_DESIGN, proposeSeams } from "./seam.js";
+import { DEFAULT_DESIGN } from "./design.js";
+import { optionalModule, notInstalledMessage } from "./optional.js";
+import { seamSummary } from "./render/seam-summary.js";
+import { waiverDraft, waiverInstructions } from "./render/waiver-artifacts.js";
 import { provenanceFor } from "./attest.js";
 import { RefusedError, buildChangePack, readContext } from "./pack.js";
+const SEAM_PACKAGE = "@pen-enterprise/seam";
 const USAGE = `pen-enterprise — refuse what nobody sanctioned, prove what shipped.
 
   pen-enterprise check  [--root <dir>] [--json]
@@ -36,6 +40,13 @@ const USAGE = `pen-enterprise — refuse what nobody sanctioned, prove what ship
       an OpenAPI stub in your house style, the fixture, a contract test, and a
       draft catalog entry. Prints. **Writes nothing** — pipe --file, or hand the
       JSON to your own scaffolder.
+
+  pen-enterprise waive  [--root <dir>] [--node <id>] [--file] [--json]
+      Draft the waiver a refusal needs: the exact binding, the reason to fill in,
+      an expiry to choose, and the CODEOWNERS line that routes its approval to the
+      group the refusal already named. Committing the file IS the request — the
+      code review is the approval. Prints. **Writes nothing**, and never touches
+      your CODEOWNERS.
 
   pen-enterprise export [--root <dir>] [--design <file>] [--file <path>] [--json]
       Compile the screen into a change package for the runtime the profile names.
@@ -70,6 +81,7 @@ async function main() {
             out: { type: "string" },
             design: { type: "string", multiple: true },
             file: { type: "string" },
+            node: { type: "string" },
             json: { type: "boolean" },
             help: { type: "boolean", short: "h" },
         },
@@ -114,10 +126,50 @@ async function main() {
         for (const r of gate.refusals) {
             lines.push(`  ✗ ${r.screen} · ${r.label ?? r.node}`, `      declared  ${r.ref ?? "—"}`, `      rule      ${r.clause}`, `      ask       ${r.ask ? `${r.ask.group} (${r.ask.confidence})` : "nobody identified"}`, `      → ${r.route_to_yes}`, "");
         }
+        // Waived is its OWN state, never folded into the clean count. A reader who
+        // cannot see the exception on the screen that reports the decision has been
+        // handed a pass, which is the failure this whole file exists to avoid.
+        for (const b of gate.bindings.filter((x) => x.waiver)) {
+            lines.push(`  ! ${b.screen} · ${b.label ?? b.node}   WAIVED`, `      verdict   ${b.verdict} — still not sanctioned, excepted until ${b.waiver.expires}`, `      reason    ${b.waiver.reason}`, `      approved  ${b.waiver.approver ?? "no group recorded"} · ${b.waiver.source}${b.waiver.ticket ? ` · ${b.waiver.ticket}` : ""}`, "");
+        }
         for (const n of gate.notes)
             lines.push(`  · ${n}`);
         process.stdout.write(lines.join("\n") + "\n");
         process.exit(gate.allowed ? 0 : 1);
+    }
+    if (cmd === "waive") {
+        /**
+         * The refusal already knows everything the waiver needs, so this assembles
+         * nothing new — it prints what the gate already decided, in the shape their
+         * CODEOWNERS can route. Printed, never written: the redirect is the write,
+         * here as everywhere.
+         */
+        const gate = await checkExport(root);
+        if (gate.refusals.length === 0)
+            fail("nothing is refused — there is nothing to waive.", 0);
+        const node = values.node;
+        const refusal = node ? gate.refusals.find((r) => r.node === node) : gate.refusals[0];
+        if (!refusal) {
+            fail(`no refusal for node '${node}'. Refused right now:\n  ` +
+                gate.refusals.map((r) => `${r.node}   ${r.screen}   ${r.ref ?? "(declares nothing)"}`).join("\n  "));
+        }
+        const draft = waiverDraft(refusal, gate.organization?.toLowerCase().replace(/[^a-z0-9]+/g, "") ?? null);
+        if (values.json) {
+            process.stdout.write(JSON.stringify(draft, null, 2) + "\n");
+            return;
+        }
+        // `--file <path>`, the same shape as `seam` and `export`: name what you want
+        // and redirect it. A draft has exactly one file, so this is mostly a spelling
+        // of "just the yaml please" — but the spelling matches everything else.
+        if (values.file) {
+            if (values.file !== draft.path)
+                fail(`this draft has one file: ${draft.path}`);
+            process.stdout.write(draft.contents);
+            return;
+        }
+        process.stdout.write(`\n  ${refusal.screen} · ${refusal.label ?? refusal.node} — ${refusal.reason}\n` +
+            `${waiverInstructions(draft, values.root ?? ".").join("\n")}\n${draft.contents}\n`);
+        return;
     }
     if (cmd === "seam") {
         const loaded = await loadProfile(root);
@@ -125,7 +177,16 @@ async function main() {
             ? await loadCatalog(root, loaded.profile.catalog.source)
             : EMPTY_CATALOG;
         const gate = await checkExport(root);
-        const proposal = await proposeSeams(root, gate, catalog, {
+        /**
+         * Deriving the API a refused screen is missing is the one GENERATIVE thing
+         * this product does, and it ships as its own package. The refusal above does
+         * not need it: where the catalog names a sanctioned replacement the route to
+         * yes is a rebind, which is core. This command is for the other case.
+         */
+        const mod = await optionalModule(SEAM_PACKAGE);
+        if (!mod)
+            fail(notInstalledMessage(SEAM_PACKAGE, "the seam generator"));
+        const proposal = await mod.proposeSeams(root, gate, catalog, {
             designs: values.design ?? [DEFAULT_DESIGN],
         });
         const files = proposal.seams.flatMap((s) => s.files);
@@ -143,46 +204,7 @@ async function main() {
             process.stdout.write(JSON.stringify(proposal, null, 2) + "\n");
             return;
         }
-        const lines = [
-            "",
-            `  ${proposal.seams.length > 0 ? "▸" : "·"} ${proposal.headline}`,
-            "",
-            `  house style  ${proposal.house_style?.source ?? "— none readable, using defaults"}`,
-            `  catalog      ${catalog.source ?? "—"} @ ${proposal.catalog_revision_before?.slice(0, 22) ?? "—"}…`,
-            "",
-        ];
-        for (const seam of proposal.seams) {
-            lines.push(`  ${seam.ref}   ${seam.title}   ${seam.screen}`, `      owner      ${seam.owner.group ?? "unresolved"} (${seam.owner.confidence})`, `      lifecycle  ${seam.lifecycle}`, `      named      ${seam.name_basis === "declared-by-binding"
-                ? "from the ref the binding already declared, so no second change is needed"
-                : "from the journey — the binding has to be pointed at it"}`, "");
-            for (const op of seam.operations) {
-                lines.push(`      ${op.method.toUpperCase()} ${op.path}`, `          ← ${op.node} · ${op.prop}   ${op.schema_name}${op.collection ? "[]" : ""}   ` +
-                    `${op.fields.length} field(s) from the design`);
-            }
-            lines.push("");
-            if (seam.binding_changes.length > 0) {
-                lines.push("      binding changes");
-                for (const c of seam.binding_changes) {
-                    lines.push(`        ${c.node}: ${c.from ?? "(declares nothing)"} → ${c.to}`);
-                }
-                lines.push("");
-            }
-            lines.push("      decide before merging");
-            for (const d of seam.decisions)
-                lines.push(`        · ${d}`);
-            lines.push("", "      files");
-            for (const f of seam.files)
-                lines.push(`        ${f.path.padEnd(46)} ${f.sha256.slice(0, 21)}…`);
-            lines.push("");
-        }
-        for (const n of proposal.not_seams) {
-            lines.push(`  no seam for ${n.screen} · ${n.label ?? n.node}`, `      ${n.reason}`, "");
-        }
-        for (const n of proposal.notes)
-            lines.push(`  · ${n}`);
-        if (files.length > 0) {
-            lines.push("", "  Nothing was written. This process cannot write. To materialise one file:", `    pen-enterprise seam --root ${values.root ?? "."} --file ${files[0].path} > ${files[0].path}`, "");
-        }
+        const lines = seamSummary(proposal, catalog.source, values.root ?? ".");
         process.stdout.write(lines.join("\n") + "\n");
         return;
     }

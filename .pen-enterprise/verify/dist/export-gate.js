@@ -17,6 +17,7 @@
  */
 import { EMPTY_CATALOG, isBlocking, loadCatalog, ownerToAsk, suggestAlternative, verdictFor, } from "./catalog.js";
 import { loadProfile, manifestSource, } from "./profile.js";
+import { applied, covers, expired, loadWaivers, } from "./waiver.js";
 const ZERO = {
     ON_MENU: 0,
     SELF_CONTAINED: 0,
@@ -71,17 +72,34 @@ function routeToYes(verdict, who, component, ask, alt) {
     return `Nothing in the catalog covers “${who}”, and no owner could be identified — this needs a human to route it.`;
 }
 /** The pure decision. Everything it needs is an argument; it touches no disk. */
-export function evaluate(bindings, catalog, loaded, sourceName) {
+export function evaluate(bindings, catalog, loaded, sourceName, 
+/**
+ * Applied HERE, inside the decision, and never by a caller. A transport that
+ * forgot would produce a bundle the gate would have refused, and the two
+ * refusals agreeing is what makes a bundle's existence mean anything.
+ */
+waivers = [], now = new Date()) {
     const policy = loaded.policy;
     const registered = loaded.profile !== null && catalog.source !== null;
     const evaluated = [];
     const counts = { ...ZERO };
     const refusals = [];
+    const expiredWaivers = [];
     for (const b of bindings) {
         const v = verdictFor(b.capability, b.component, catalog, policy);
         // With no catalog registered there is nothing to be off, so a declared
         // binding is reported rather than dressed up as sanctioned.
-        const blocking = registered && isBlocking(v.verdict, policy);
+        const refused = registered && isBlocking(v.verdict, policy);
+        // Exactly what it names — same screen, same node, same ref. `covers` is the
+        // whole trap: a waiver that matches a class of bindings is how a gate stops
+        // being one.
+        const named = waivers.filter((w) => covers(w, b.screen, b.node, v.ref));
+        const waiver = refused ? named.find((w) => !expired(w, now)) : undefined;
+        if (refused && !waiver) {
+            for (const w of named)
+                expiredWaivers.push({ ...applied(w), screen: b.screen, node: b.node });
+        }
+        const blocking = refused && !waiver;
         counts[v.verdict]++;
         evaluated.push({
             ...b,
@@ -93,6 +111,7 @@ export function evaluate(bindings, catalog, loaded, sourceName) {
             system: v.capability?.system ?? null,
             reason: v.reason,
             blocking,
+            waiver: waiver ? applied(waiver) : null,
         });
         if (blocking) {
             const ask = ownerToAsk(v.ref, catalog, policy);
@@ -147,8 +166,14 @@ export function evaluate(bindings, catalog, loaded, sourceName) {
         headline = "No enterprise profile registered — the export gate is off.";
     }
     else if (first === undefined) {
-        headline =
-            `Export clean — ${counts.ON_MENU} of ${bindings.length} bindings sanctioned against ` +
+        // A waived export is not a clean one, and the one sentence most people read
+        // has to say so. "Clean" would be the single most misleading word available.
+        const waived = evaluated.filter((b) => b.waiver);
+        headline = waived.length
+            ? `Export allowed with ${waived.length} waived binding(s) — ` +
+                `${waived.map((b) => `“${b.label ?? b.node}” until ${b.waiver.expires}`).join(", ")}. ` +
+                `${counts.ON_MENU} of ${bindings.length} bindings are sanctioned outright.`
+            : `Export clean — ${counts.ON_MENU} of ${bindings.length} bindings sanctioned against ` +
                 `${catalog.source} @ ${catalog.revision?.slice(0, 14) ?? "?"}…`;
     }
     else {
@@ -158,8 +183,15 @@ export function evaluate(bindings, catalog, loaded, sourceName) {
                 (first.ask ? ` ${first.ask.group} can approve.` : "") +
                 (refusals.length > 1 ? ` (+${refusals.length - 1} more)` : "");
     }
+    // An expired waiver is the reason a check that passed last week fails today,
+    // and nothing else in the output would explain it. Say it where it is read.
+    for (const w of expiredWaivers) {
+        notes.push(`${w.screen} · ${w.node} was waived until ${w.expires} by ${w.source} — that waiver has expired, ` +
+            `so the binding is refused again. Renew it with a new expiry, or fix the binding.`);
+    }
     return {
         allowed: first === undefined,
+        expired_waivers: expiredWaivers,
         headline,
         organization: loaded.organization,
         runtime_target: loaded.runtimeTarget,
@@ -185,6 +217,6 @@ export async function checkExport(root, source) {
         ? await loadCatalog(root, loaded.profile.catalog.source)
         : EMPTY_CATALOG;
     const src = source ?? manifestSource(root, loaded.profile?.bindings?.source ?? "enterprise/bindings.json");
-    return evaluate(await src.load(), catalog, loaded, src.name);
+    return evaluate(await src.load(), catalog, loaded, src.name, await loadWaivers(root));
 }
 //# sourceMappingURL=export-gate.js.map

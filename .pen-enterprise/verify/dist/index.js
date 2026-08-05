@@ -13,8 +13,11 @@ export { EMPTY_CATALOG, SUPERSEDED_BY, isBlocking, loadCatalog, ownerToAsk, sugg
 export { checkExport, evaluate, } from "./export-gate.js";
 export { DEFAULT_POLICY, NO_CAPABILITY, PROFILE_FILE, hashPolicy, inlineSource, loadProfile, manifestSource, policyOf, } from "./profile.js";
 export { RECEIPT_VERSION, canonicalize, generateReceiptKeyPair, issueReceipt, keyIdOf, signingBody, signingKeyFromEnv, verifyReceipt, } from "./receipt.js";
-export { DEFAULT_DESIGN, deriveSeams, designSource, gapsFor, proposeSeams, readHouseStyle, } from "./seam.js";
-export { renderSeamFiles } from "./render/seam-artifacts.js";
+export { DEFAULT_DESIGN, designSource, } from "./design.js";
+// Deriving the API a refused screen is missing is a package of its own:
+// `@pen-enterprise/seam`. It is the only GENERATIVE thing this product does, and
+// nothing here depends on it — the route to yes for a binding the catalog can
+// already replace never needed it.
 export { exported, } from "./target.js";
 export { resolveOperations } from "./operations.js";
 export { BUILDER_ID, BUILD_TYPE, SLSA_PREDICATE_TYPE, provenanceFor } from "./attest.js";

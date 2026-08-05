@@ -59,6 +59,18 @@ export function annotations(input) {
             escape(`${b.label ?? b.node} carries ${b.component ?? "a component"} but declares no capability. ` +
                 `This check resolves declared bindings and does not observe traffic, so this is unknown, not safe.`));
     }
+    // A waived binding is annotated on the exact line that declares it. Silence
+    // here would be the check agreeing that the exception has become the rule —
+    // and the line in the diff is the one place a reviewer cannot miss it.
+    for (const b of input.gate.bindings) {
+        if (!b.waiver)
+            continue;
+        const at = input.locations[b.node];
+        out.push(`::notice ${at ? `file=${at.file},line=${at.line},` : ""}title=${escape(`Waived until ${b.waiver.expires}`)}::` +
+            escape(`${b.label ?? b.node} on ${b.screen} — ${b.ref ?? "no declared capability"} is ${b.verdict}, not ` +
+                `sanctioned. Excepted by ${b.waiver.source}: ${b.waiver.reason} ` +
+                `This check refuses again after ${b.waiver.expires}.`));
+    }
     return out.join("\n") + (out.length ? "\n" : "");
 }
 /* ── the job summary ────────────────────────────────────────────────────── */
@@ -80,6 +92,12 @@ function refusedSummary(input) {
         `|---|---|---|---|`,
         ...rows,
         ...detail,
+        ...(input.gate.expired_waivers ?? []).flatMap((w) => [
+            ``,
+            `> **\`${w.node}\` was waived until ${w.expires}, and that waiver has expired.** Nothing about this`,
+            `> change broke it — the exception in \`${w.source}\` ran out, which is what an expiry is for.`,
+            `> Renew it with a new date and a new review, or fix the binding.`,
+        ]),
         ``,
         `> This check is **not** an opinion about your code. Every rule above came out of files in`,
         `> this repository: the catalog below, and the policy in the Enterprise Profile.`,
@@ -90,16 +108,33 @@ function allowedSummary(input) {
     const called = Object.entries(input.operations)
         .filter(([node]) => input.gate.bindings.some((b) => b.node === node && b.verdict === "ON_MENU"))
         .sort(([a], [b]) => a.localeCompare(b));
-    const lines = [
-        `## ✅ Approved — every element resolves to a sanctioned operation`,
-        ``,
-        `| Element | Operation | Sanctioned as | Owner |`,
-        `|---|---|---|---|`,
-        ...called.map(([node, op]) => {
-            const b = input.gate.bindings.find((x) => x.node === node);
-            return `| **${b.label ?? node}** | \`${op.method} ${op.path}\` | \`${op.capability}\` | ${b.owner ?? "—"} |`;
-        }),
-    ];
+    const waived = input.gate.bindings.filter((b) => b.waiver);
+    const lines = waived.length
+        ? [
+            `## ⚠️ Approved with ${waived.length} waived binding(s)`,
+            ``,
+            `Not a clean pass. Each of these reaches something the catalog does not sanction, and is`,
+            `here because somebody with the authority to say so accepted it **until a date**.`,
+            ``,
+            `| Element | Reaches | Verdict | Waived until | Why | Recorded in |`,
+            `|---|---|---|---|---|---|`,
+            ...waived.map((b) => `| **${b.label ?? b.node}** | \`${b.ref ?? "—"}\` | \`${b.verdict}\` | **${b.waiver.expires}** | ` +
+                `${b.waiver.reason}${b.waiver.ticket ? ` (${b.waiver.ticket})` : ""} | \`${b.waiver.source}\` |`),
+            ``,
+            `On ${waived[0].waiver.expires} this check starts refusing again, with no action from anyone.`,
+            `That is what an expiry is for: an exception that never runs out is a policy change nobody voted for.`,
+            ``,
+            `### The rest of the screen`,
+            ``,
+        ]
+        : [
+            `## ✅ Approved — every element resolves to a sanctioned operation`,
+            ``,
+        ];
+    lines.push(`| Element | Operation | Sanctioned as | Owner |`, `|---|---|---|---|`, ...called.map(([node, op]) => {
+        const b = input.gate.bindings.find((x) => x.node === node);
+        return `| **${b.label ?? node}** | \`${op.method} ${op.path}\` | \`${op.capability}\` | ${b.owner ?? "—"} |`;
+    }));
     if (pack) {
         lines.push(``, `### Change Pack`, ``, pack.signed_by
             ? `Signed with the customer key \`${pack.signed_by}\`${pack.expires ? `, valid until ${pack.expires.slice(0, 10)}` : ""}. **We never see the private half.**`
