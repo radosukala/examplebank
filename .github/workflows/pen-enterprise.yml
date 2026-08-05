@@ -112,8 +112,12 @@ jobs:
               echo "The job summary names what was refused and who can approve it."
             fi
           } > comment.md
+          # Never fatal. A pull request from a fork gets a read-only token, and a
+          # governance check that goes red because it could not leave a comment
+          # has failed for a reason that has nothing to do with the bindings.
           gh pr comment "${{ github.event.number }}" --edit-last --body-file comment.md \
-            || gh pr comment "${{ github.event.number }}" --body-file comment.md
+            || gh pr comment "${{ github.event.number }}" --body-file comment.md \
+            || echo "could not comment — the preview is still attached to the run."
 
       # Optional, and it holds nothing. We render a Block Kit payload; YOUR
       # incoming webhook posts it. No bot token, no OAuth grant, no listener,
