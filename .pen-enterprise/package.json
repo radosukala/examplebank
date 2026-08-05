@@ -3,11 +3,10 @@
   "private": true,
   "type": "module",
   "version": "0.1.0",
-  "description": "Compiled snapshot of @pen-enterprise/verify, vendored until the package is published.",
+  "description": "Compiled snapshot of @pen-enterprise/verify and the Liferay target, vendored until the packages are published.",
   "dependencies": {
-    "yaml": "^2.9.0"
+    "@pen-enterprise/verify": "file:./verify",
+    "@pen-enterprise/target-liferay": "file:./target-liferay"
   },
-  "engines": {
-    "node": ">=22"
-  }
+  "engines": { "node": ">=22" }
 }

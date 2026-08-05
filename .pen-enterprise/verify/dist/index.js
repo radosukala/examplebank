@@ -15,9 +15,12 @@ export { DEFAULT_POLICY, NO_CAPABILITY, PROFILE_FILE, hashPolicy, inlineSource, 
 export { RECEIPT_VERSION, canonicalize, generateReceiptKeyPair, issueReceipt, keyIdOf, signingBody, signingKeyFromEnv, verifyReceipt, } from "./receipt.js";
 export { DEFAULT_DESIGN, deriveSeams, designSource, gapsFor, proposeSeams, readHouseStyle, } from "./seam.js";
 export { renderSeamFiles } from "./render/seam-artifacts.js";
-export { exported, resolveOperations, } from "./render/target.js";
+export { exported, resolveOperations, } from "./target.js";
+export { BUILDER_ID, BUILD_TYPE, SLSA_PREDICATE_TYPE, provenanceFor } from "./attest.js";
 export { slackMessage } from "./render/slack.js";
-export { TARGETS, targetFor } from "./render/targets.js";
-export { LIFERAY_CUSTOM_ELEMENT } from "./render/liferay.js";
+// The adapters themselves are packages of their own — `@pen-enterprise/target-liferay`
+// is the one we publish. This library names them and loads them on demand; it does
+// not depend on them, which is what makes the seam real rather than aspirational.
+export { KNOWN, noAdapter, registerTarget, targetFor } from "./targets.js";
 export { daysUntil, exists, readJson, sha256, sha256File, walkFiles } from "./fs.js";
 //# sourceMappingURL=index.js.map

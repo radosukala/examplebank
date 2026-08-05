@@ -1,0 +1,10 @@
+{
+  "name": "@pen-enterprise/target-liferay",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "main": "./dist/liferay.js",
+  "exports": { ".": { "default": "./dist/liferay.js" } },
+  "dependencies": { "@pen-enterprise/verify": "file:../verify" },
+  "engines": { "node": ">=22" }
+}

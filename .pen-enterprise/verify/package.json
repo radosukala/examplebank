@@ -1,0 +1,10 @@
+{
+  "name": "@pen-enterprise/verify",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "main": "./dist/index.js",
+  "exports": { ".": { "default": "./dist/index.js" } },
+  "dependencies": { "yaml": "^2.9.0" },
+  "engines": { "node": ">=22" }
+}
