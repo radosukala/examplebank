@@ -1,0 +1,31 @@
+# An exception to the export gate, for one binding, until a date.
+#
+# /dashboard · Your cards
+# api:default/cards-core is lifecycle "deprecated"; this lane allows production
+# Rule: policy.allowed_lifecycles = [production]
+#
+# Committing this file IS the request. In CODEOWNERS this path is owned by
+# @examplebank/cards-platform, so the pull request cannot
+# merge until they approve it. Nothing is sent anywhere and nothing is stored
+# outside this repository.
+#
+# The check starts refusing again on the expiry date, with no action from anyone.
+# That is the point of it: an exception that never expires is a policy change
+# nobody voted for.
+screen: "/dashboard"
+node: "cards-tile"
+capability: "api:default/cards-core"
+
+# WHY. Not "temporary" and not "TODO" — the sentence the approver is agreeing to,
+# and the one somebody reads in six months wondering what this was for.
+reason: "Cards platform retires cards-core on 2026-11-30 and the replacement is not GA for our lane until then. Agreed with @examplebank/cards-platform on 2026-08-04."
+
+# TODO: choose this date. Ninety days is offered, not decided.
+expires: 2026-11-30
+
+# Optional: your own change record, so this waiver joins the trail it belongs to.
+ticket: "CHG-4471"
+
+# Recorded in the receipt beside what shipped. It is not proof of approval —
+# the approval is the review on this file, in your forge's log.
+approver: "group:cards-platform"
