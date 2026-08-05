@@ -7,7 +7,8 @@
   "dependencies": {
     "@pen-enterprise/verify": "file:./verify",
     "@pen-enterprise/target-liferay": "file:./target-liferay",
-    "@pen-enterprise/target-preview": "file:./target-preview"
+    "@pen-enterprise/target-preview": "file:./target-preview",
+    "@pen-enterprise/seam": "file:./seam"
   },
   "engines": {
     "node": ">=22"

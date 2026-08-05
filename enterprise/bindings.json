@@ -1,6 +1,6 @@
 {
   "$comment": [
-    "What each node on the canvas stands on. DECLARED, not discovered — we resolve",
+    "What each node on the canvas stands on. DECLARED, not discovered \u2014 we resolve",
     "statements the enterprise makes, we do not observe network traffic. That is why",
     "UNDECLARED exists as a verdict and why it means unknown, not safe.",
     "",
@@ -22,7 +22,7 @@
           "label": "Your cards",
           "role": "data-panel",
           "component": "@bank/ui/CardList@4.2",
-          "capability": "api:default/cards-valid-for-user"
+          "capability": "api:default/cards-core"
         },
         "balance-tile": {
           "label": "Balance",

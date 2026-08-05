@@ -22,7 +22,7 @@ import { checkExport } from "./export-gate.js";
 import { readJson } from "./fs.js";
 import { loadProfile } from "./profile.js";
 import { issueReceipt, signingKeyFromEnv } from "./receipt.js";
-import { DEFAULT_DESIGN, designSource } from "./seam.js";
+import { DEFAULT_DESIGN, designSource } from "./design.js";
 import { resolveOperations } from "./operations.js";
 import { noAdapter, targetFor } from "./targets.js";
 export async function readContext(root) {

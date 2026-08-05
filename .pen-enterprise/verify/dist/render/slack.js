@@ -47,12 +47,29 @@ function refused(input, where) {
 function approved(input, where) {
     const g = input.gate;
     const passed = g.bindings.filter((b) => b.verdict === "ON_MENU");
+    const waived = g.bindings.filter((b) => b.waiver);
     const pack = input.pack;
     // Deliberately not the refusal card with a green tick. Different shape, different
     // content, and it answers a different question — what shipped, and how to check
     // it — because a check that always says the same thing is the one people mute.
+    //
+    // And a WAIVED binding gets its own block above the pass, because a channel
+    // scrolling past a green tick is exactly where an exception would disappear.
     return [
-        header(`✅ Approved — ${g.organization ?? "this repository"}`),
+        header(waived.length
+            ? `⚠️ Approved with ${waived.length} waived — ${g.organization ?? "this repository"}`
+            : `✅ Approved — ${g.organization ?? "this repository"}`),
+        ...(waived.length
+            ? [
+                section(`*${waived.length} binding${waived.length === 1 ? " reaches" : "s reach"} something nobody sanctioned, ` +
+                    `excepted until a date:*\n` +
+                    waived
+                        .map((b) => `• *${esc(b.label ?? b.node)}* → \`${esc(b.ref ?? "—")}\` · ${esc(b.verdict)} · ` +
+                        `until *${esc(b.waiver.expires)}* — ${esc(b.waiver.reason)}`)
+                        .join("\n")),
+                { type: "divider" },
+            ]
+            : []),
         section(`*${passed.length} element${passed.length === 1 ? "" : "s"} resolve to sanctioned operations.*` +
             `${pack ? ` A Change Pack of ${pack.files.length} file${pack.files.length === 1 ? "" : "s"} was issued.` : ""}\n` +
             `${link(where.run_url, "Bindings resolve against the catalog")}${where.repo ? ` · \`${esc(where.repo)}\`` : ""}`),
