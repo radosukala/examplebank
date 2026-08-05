@@ -29,6 +29,10 @@ on:
 
 permissions:
   contents: read
+  # Only so the check can leave ONE comment pointing at the preview. It grants no
+  # ability to approve, merge or change a review — and the merge is blocked by the
+  # branch ruleset, never by anything this token can reach.
+  pull-requests: write
 
 jobs:
   bindings:
@@ -65,11 +69,55 @@ jobs:
           node .pen-enterprise/verify/dist/ci.js --root . --changed-from changed.txt \
             --evidence > evidence.json
 
+      # The YES, not just the NO. One HTML file that opens with a double-click:
+      # the approved bundle inlined verbatim, its answers taken from this
+      # repository's own declared examples, nothing fetched. A reviewer downloads
+      # it and looks at the screen before approving it — no portal, no VPN.
+      #
+      # Absent when the change is refused, and that is the invariant, not a gap:
+      # a blocked merge has no bundle, so there is nothing honest to preview.
+      - name: The preview a reviewer clicks
+        if: always()
+        run: |
+          node .pen-enterprise/verify/dist/cli.js export --root . --file preview.html \
+            > preview.html || rm -f preview.html
+
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: pen-enterprise-evidence
-          path: evidence.json
+          path: |
+            evidence.json
+            preview.html
+          if-no-files-found: ignore
+
+      # One comment, edited in place, so a long review is not a wall of bot noise.
+      # `gh` ships on the runner, so this stays inside the no-third-party-actions
+      # rule above.
+      - name: Leave the reviewer a way in
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "<!-- pen-enterprise -->"
+            if [ -f preview.html ]; then
+              echo "**The screen this change produces** is attached to [the run]($RUN) as"
+              echo "\`pen-enterprise-evidence\` → \`preview.html\`. Download it and open it — no"
+              echo "server, no VPN, nothing fetched. It inlines the bundle that deploys byte for"
+              echo "byte, and the digest is in the receipt beside it."
+            else
+              echo "**No preview:** this change is refused, so there is no bundle to show."
+              echo "The job summary names what was refused and who can approve it."
+            fi
+          } > comment.md
+          # Never fatal. A pull request from a fork gets a read-only token, and a
+          # governance check that goes red because it could not leave a comment
+          # has failed for a reason that has nothing to do with the bindings.
+          gh pr comment "${{ github.event.number }}" --edit-last --body-file comment.md \
+            || gh pr comment "${{ github.event.number }}" --body-file comment.md \
+            || echo "could not comment — the preview is still attached to the run."
 
       # Optional, and it holds nothing. We render a Block Kit payload; YOUR
       # incoming webhook posts it. No bot token, no OAuth grant, no listener,

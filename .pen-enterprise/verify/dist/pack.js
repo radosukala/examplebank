@@ -23,7 +23,7 @@ import { readJson } from "./fs.js";
 import { loadProfile } from "./profile.js";
 import { issueReceipt, signingKeyFromEnv } from "./receipt.js";
 import { DEFAULT_DESIGN, designSource } from "./seam.js";
-import { resolveOperations, } from "./target.js";
+import { resolveOperations } from "./operations.js";
 import { noAdapter, targetFor } from "./targets.js";
 export async function readContext(root) {
     const loaded = await loadProfile(root);

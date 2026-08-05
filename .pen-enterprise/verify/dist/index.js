@@ -15,7 +15,8 @@ export { DEFAULT_POLICY, NO_CAPABILITY, PROFILE_FILE, hashPolicy, inlineSource, 
 export { RECEIPT_VERSION, canonicalize, generateReceiptKeyPair, issueReceipt, keyIdOf, signingBody, signingKeyFromEnv, verifyReceipt, } from "./receipt.js";
 export { DEFAULT_DESIGN, deriveSeams, designSource, gapsFor, proposeSeams, readHouseStyle, } from "./seam.js";
 export { renderSeamFiles } from "./render/seam-artifacts.js";
-export { exported, resolveOperations, } from "./target.js";
+export { exported, } from "./target.js";
+export { resolveOperations } from "./operations.js";
 export { BUILDER_ID, BUILD_TYPE, SLSA_PREDICATE_TYPE, provenanceFor } from "./attest.js";
 export { slackMessage } from "./render/slack.js";
 // The adapters themselves are packages of their own — `@pen-enterprise/target-liferay`

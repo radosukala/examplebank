@@ -22,89 +22,14 @@
  *
  * Read-only, like everything else. A target returns bytes and their digests; who
  * writes them is the caller's problem, and usually their scaffolder's.
+ *
+ * The contract ONLY. `operations.ts` reads the enterprise's OpenAPI documents to
+ * fill `ExportInput.operations`, and it lives next door rather than here because
+ * an adapter author reading this file to learn what they may see should not have
+ * to page through a spec parser to find out.
  */
-import path from "node:path";
-import { parse } from "yaml";
 import { sha256 } from "./fs.js";
 export function exported(path, contents, what) {
     return { path, contents, sha256: sha256(contents), what };
-}
-/** Required header names for one operation, following $refs into components. */
-function requiredHeaders(spec, parameters) {
-    const out = [];
-    for (const raw of parameters) {
-        const p = raw.$ref?.startsWith("#/components/parameters/")
-            ? spec.components?.parameters?.[raw.$ref.split("/").pop()]
-            : raw;
-        if (p?.in === "header" && p.required && p.name)
-            out.push(p.name);
-    }
-    return out;
-}
-const ROLE_SUFFIXES = ["-tile", "-panel", "-card", "-list", "-widget", "-block"];
-function segmentOf(node) {
-    for (const suffix of ROLE_SUFFIXES) {
-        if (node.endsWith(suffix))
-            return node.slice(0, -suffix.length);
-    }
-    return node;
-}
-/**
- * A catalog entry says *what* is sanctioned. A bundle has to call *something*, and
- * the something is in the spec the entry points at.
- *
- * One GET means one answer. Several means the node has to disambiguate, and the
- * only honest tiebreak is its own name: `cards-tile` picks the path with `cards` in
- * it. When neither rule fires we return nothing and the bundle says so, because a
- * generated `fetch` at a guessed URL is exactly the kind of plausible wrongness
- * that costs a room.
- */
-export async function resolveOperations(root, catalog, bound, read) {
-    if (!catalog.source)
-        return {};
-    const catalogDir = path.dirname(catalog.source);
-    const specs = new Map();
-    for (const cap of catalog.capabilities) {
-        if (!cap.definition || cap.definition.includes("://"))
-            continue;
-        const rel = path.normalize(path.join(catalogDir, cap.definition));
-        const text = await read(path.join(path.resolve(root), rel));
-        if (!text)
-            continue;
-        try {
-            specs.set(cap.ref, { rel, spec: parse(text) });
-        }
-        catch {
-            /* an unparseable spec resolves to nothing, which the bundle will report */
-        }
-    }
-    const out = {};
-    for (const b of bound) {
-        if (!b.ref)
-            continue;
-        const hit = specs.get(b.ref);
-        if (!hit)
-            continue;
-        const gets = [];
-        for (const [route, operations] of Object.entries(hit.spec.paths ?? {})) {
-            for (const [method, op] of Object.entries(operations)) {
-                if (method.toLowerCase() === "get") {
-                    gets.push({ method: "GET", path: route, parameters: op?.parameters ?? [] });
-                }
-            }
-        }
-        const chosen = gets.length === 1 ? gets[0] : gets.find((g) => g.path.includes(segmentOf(b.node)));
-        if (!chosen)
-            continue;
-        out[b.node] = {
-            capability: b.ref,
-            method: chosen.method,
-            path: chosen.path,
-            server: hit.spec.servers?.[0]?.url ?? null,
-            required_headers: requiredHeaders(hit.spec, chosen.parameters),
-            spec: hit.rel,
-        };
-    }
-    return out;
 }
 //# sourceMappingURL=target.js.map
