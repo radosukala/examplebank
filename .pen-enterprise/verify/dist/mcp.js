@@ -26,7 +26,8 @@ import { z } from "zod";
 import { checkExport } from "./export-gate.js";
 import { RefusedError, buildChangePack, readContext } from "./pack.js";
 import { verifyReceipt } from "./receipt.js";
-import { proposeSeams } from "./seam.js";
+import { optionalModule, notInstalledMessage } from "./optional.js";
+const SEAM_PACKAGE = "@pen-enterprise/seam";
 /** Compact JSON — an agent rereads these every session, and tokens are product cost. */
 function json(value) {
     return { content: [{ type: "text", text: JSON.stringify(value) }] };
@@ -91,7 +92,13 @@ async function main() {
             const { root } = RootInput.parse(args);
             const dir = rootOf(root);
             const ctx = await readContext(dir);
-            return json(await proposeSeams(dir, ctx.gate, ctx.catalog));
+            // Optional here too, and reported rather than thrown: an agent that gets
+            // a clear "install this" can act on it, where a stack trace ends the turn.
+            const mod = await optionalModule(SEAM_PACKAGE);
+            if (!mod)
+                return json({ error: notInstalledMessage(SEAM_PACKAGE, "the seam generator") });
+            const propose = mod.proposeSeams;
+            return json(await propose(dir, ctx.gate, ctx.catalog));
         }
         catch (e) {
             return failure(e);

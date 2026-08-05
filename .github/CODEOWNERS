@@ -33,3 +33,16 @@
 # Proposed seams land here before anyone builds them. Two groups on purpose: the
 # team who needs it, and the architects who decide whether it should exist.
 /seams/                         @examplebank/platform-architecture @examplebank/retail-channel
+
+# EXCEPTIONS TO THE EXPORT GATE. Committing a file here is the request, and this
+# line is what turns it into an approval: the path routes the review to a group,
+# and branch protection will not let the pull request merge without them.
+#
+# ORDER MATTERS. GitHub takes the LAST matching pattern, not the most specific
+# one — so this catch-all is the floor, and a per-waiver line that routes an
+# exception to the team who owns that capability must come BELOW it.
+/.pen/waivers/**                @examplebank/platform-architecture
+
+# Routed to the team who owns this capability. BELOW the catch-all above,
+# because GitHub takes the last matching pattern.
+/.pen/waivers/dashboard-cards-tile.yaml  @examplebank/cards-platform

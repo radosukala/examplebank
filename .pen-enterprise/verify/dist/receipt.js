@@ -76,8 +76,11 @@ export async function issueReceipt(gate, opts = {}, now = new Date()) {
         binding_source: gate.binding_source,
         counts: gate.counts,
         capabilities: gate.bindings
-            .filter((b) => b.verdict === "ON_MENU")
+            .filter((b) => b.verdict === "ON_MENU" || b.waiver)
             .map((b) => ({
+            ...(b.waiver
+                ? { waived_by: { id: b.waiver.id, expires: b.waiver.expires, ticket: b.waiver.ticket, source: b.waiver.source } }
+                : {}),
             screen: b.screen,
             node: b.node,
             label: b.label,
