@@ -22,7 +22,7 @@
           "label": "Your cards",
           "role": "data-panel",
           "component": "@bank/ui/CardList@4.2",
-          "capability": "api:default/cards-valid-for-user"
+          "capability": "api:default/cards-core"
         },
         "balance-tile": {
           "label": "Balance",
@@ -59,6 +59,12 @@
           "role": "decoration",
           "component": null,
           "capability": null
+        },
+        "payments-tile": {
+          "label": "Pending payments",
+          "role": "data-panel",
+          "component": "@bank/ui/ActivityList@3.0",
+          "capability": "api:default/payments-orchestrator"
         }
       }
     }
