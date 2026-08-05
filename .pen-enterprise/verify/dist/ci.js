@@ -26,10 +26,12 @@
  *
  * Writes nothing, here as everywhere. The workflow redirects.
  */
+import { realpathSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
-import { RefusedError, buildChangePack, readContext } from "./pack.js";
+import { NoAdapterError, RefusedError, buildChangePack, readContext } from "./pack.js";
 import { annotations, evidence, summary } from "./render/ci-report.js";
 import { slackMessage } from "./render/slack.js";
 const TOOL = "pen-enterprise-ci";
@@ -116,15 +118,13 @@ async function locate(root, rel, nodes) {
 /* ── assembly ───────────────────────────────────────────────────────────── */
 export async function report(root, changedPaths, now = new Date()) {
     const ctx = await readContext(root);
-    const { gate, loaded } = ctx;
+    const { gate, loaded, operations } = ctx;
     // A refused change has no pack, and that is the invariant, not a limitation:
     // the two refusals agree, so evidence of a blocked merge can never carry a
     // receipt that says something shipped.
     let pack = null;
-    let operations = {};
     try {
         const built = await buildChangePack(ctx);
-        operations = built.operations;
         pack = {
             signed_by: built.receipt.signature?.key_id ?? null,
             expires: built.receipt.expires,
@@ -132,7 +132,13 @@ export async function report(root, changedPaths, now = new Date()) {
         };
     }
     catch (err) {
-        if (!(err instanceof RefusedError))
+        // A missing render target is also no pack — the check still blocks or passes
+        // on the gate alone. Said on stderr rather than swallowed, because "no bundle
+        // because nobody installed an adapter" and "no bundle because we refused" are
+        // different facts and a reviewer must not have to guess which one happened.
+        if (err instanceof NoAdapterError)
+            process.stderr.write(`  note: ${err.message}\n`);
+        else if (!(err instanceof RefusedError))
             throw err;
     }
     const codeowners = await readCodeowners(root);
@@ -202,8 +208,19 @@ async function main() {
             `the job summary names who can approve each one.\n`);
     process.exit(input.gate.allowed ? 0 : 1);
 }
-// Importable for tests without running the CLI half.
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+/**
+ * Importable for tests without running the CLI half — through the REAL path.
+ *
+ * `argv[1]` is whatever the shell was handed, and npm's bin entries are symlinks,
+ * so under the documented `npx @pen-enterprise/verify pen-enterprise-ci` form
+ * this compared a link against its own target, took itself for an import, and
+ * exited 0 having resolved nothing. A required check that silently passes is the
+ * worst failure in this file: every merge it was guarding sails through green.
+ * Found by `test/without-adapter.test.ts`, whose sandbox sits under a symlinked
+ * tmpdir; `test/ci.test.ts` now invokes the binary through a link on purpose.
+ */
+const invoked = process.argv[1] ? realpathSync(process.argv[1]) : null;
+if (invoked && import.meta.url === pathToFileURL(invoked).href) {
     main().catch((err) => {
         process.stderr.write(`${TOOL}: ${err.message}\n`);
         process.exit(2);

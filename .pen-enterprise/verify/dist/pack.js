@@ -23,14 +23,20 @@ import { readJson } from "./fs.js";
 import { loadProfile } from "./profile.js";
 import { issueReceipt, signingKeyFromEnv } from "./receipt.js";
 import { DEFAULT_DESIGN, designSource } from "./seam.js";
-import { resolveOperations } from "./render/target.js";
-import { TARGETS, targetFor } from "./render/targets.js";
+import { resolveOperations, } from "./target.js";
+import { noAdapter, targetFor } from "./targets.js";
 export async function readContext(root) {
     const loaded = await loadProfile(root);
     const catalog = loaded.profile?.catalog?.source
         ? await loadCatalog(root, loaded.profile.catalog.source)
         : EMPTY_CATALOG;
-    return { root, loaded, catalog, gate: await checkExport(root) };
+    const gate = await checkExport(root);
+    // Resolved here rather than inside `buildChangePack`, because which operation a
+    // binding stands on is a fact about the enterprise's own OpenAPI documents. It
+    // has nothing to do with rendering, and an estate that installed no runtime
+    // target should not lose it from its evidence for want of a renderer.
+    const operations = await resolveOperations(root, catalog, gate.bindings, (file) => readFile(file, "utf8").catch(() => null));
+    return { root, loaded, catalog, gate, operations };
 }
 /**
  * A refused export produces NO bundle — not a warned one, not a draft one.
@@ -47,15 +53,30 @@ export class RefusedError extends Error {
         this.name = "RefusedError";
     }
 }
+/**
+ * No adapter answered — which is a MISSING BUNDLE, never a missing verdict.
+ *
+ * Its own class so a transport can tell it apart from a real failure. The
+ * required check must still block on a bad binding in an estate that has
+ * installed no target at all: the gate is the control, and a bundle is what a
+ * passing gate additionally earns you. Crashing the check because nobody
+ * installed a renderer would take the control offline for a formatting problem.
+ */
+export class NoAdapterError extends Error {
+    target;
+    constructor(target) {
+        super(noAdapter(target));
+        this.target = target;
+        this.name = "NoAdapterError";
+    }
+}
 export async function buildChangePack(ctx, opts = {}) {
-    const { root, loaded, catalog, gate } = ctx;
+    const { root, loaded, gate, operations } = ctx;
     if (!gate.allowed)
         throw new RefusedError(gate);
-    const target = targetFor(loaded.runtimeTarget);
-    if (!target) {
-        throw new Error(`no adapter for runtime target '${loaded.runtimeTarget ?? "(none declared)"}'. ` +
-            `enterprise/profile.json names the target; this build has: ${TARGETS.map((t) => t.id).join(", ")}`);
-    }
+    const target = opts.target ?? (await targetFor(loaded.runtimeTarget));
+    if (!target)
+        throw new NoAdapterError(loaded.runtimeTarget ?? null);
     const designs = await designSource(root, opts.designs ?? [DEFAULT_DESIGN]).load();
     const design = designs.find((d) => gate.bindings.some((b) => b.screen === d.screen)) ?? designs[0];
     if (!design)
@@ -63,7 +84,6 @@ export async function buildChangePack(ctx, opts = {}) {
     const library = loaded.profile?.components?.source
         ? await readJson(path.join(root, loaded.profile.components.source))
         : null;
-    const operations = await resolveOperations(root, catalog, gate.bindings, (file) => readFile(file, "utf8").catch(() => null));
     /**
      * EVERY input, not the two that were easy to reach.
      *

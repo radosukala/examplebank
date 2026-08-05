@@ -1,6 +1,14 @@
 /**
  * LIFERAY 7.4 CUSTOM ELEMENT — the one adapter, built for the demo.
  *
+ * A package of its own, because it is the only part of this product that is
+ * finished: `docs/PLAN.md` §6 calls it "proof the model reaches a real runtime"
+ * and gives it no successor until a customer signs for one. Something deliberately
+ * frozen, with no roadmap, that exists to demonstrate rather than to grow is not
+ * spine — and leaving it in the spine meant the resolver could not be built,
+ * shipped or run without it. `@pen-enterprise/verify` now names this package and
+ * loads it on demand; delete it from an install and the gate still gates.
+ *
  * **Do not let this become a Liferay product.** It exists because a Change Pack has
  * to land *somewhere* real, and because externally built front-end code is a
  * first-class custom element on 7.4 and the only customization path Liferay SaaS
@@ -31,7 +39,7 @@
  * a stranger's laptop with no account and no network.
  */
 import path from "node:path";
-import { exported } from "./target.js";
+import { exported } from "@pen-enterprise/verify";
 const TARGET_ID = "liferay-7.4-custom-element";
 /* ── naming and layout, read from what they already have ────────────────── */
 function journeyOf(screen) {

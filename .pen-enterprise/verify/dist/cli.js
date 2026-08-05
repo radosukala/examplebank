@@ -23,6 +23,7 @@ import { checkExport } from "./export-gate.js";
 import { loadProfile } from "./profile.js";
 import { generateReceiptKeyPair, keyIdOf, verifyReceipt } from "./receipt.js";
 import { DEFAULT_DESIGN, proposeSeams } from "./seam.js";
+import { provenanceFor } from "./attest.js";
 import { RefusedError, buildChangePack, readContext } from "./pack.js";
 const USAGE = `pen-enterprise — refuse what nobody sanctioned, prove what shipped.
 
@@ -41,6 +42,11 @@ const USAGE = `pen-enterprise — refuse what nobody sanctioned, prove what ship
       Refuses outright if the gate refuses — a bundle only exists for an export
       that was allowed. Embeds the Change Pack receipt, signed with
       PEN_RECEIPT_KEY when it is set. Prints. **Writes nothing.**
+
+  pen-enterprise attest [--root <dir>] [--design <file>]
+      Print a SLSA v1 provenance predicate for the Change Pack, for
+      \`cosign attest-blob --predicate - --type slsaprovenance1\`. Alongside the
+      receipt, never replacing it — the offline path needs nothing installed.
 
   pen-enterprise verify <receipt.json> [--key <public.pem>] [--root <dir>]
       Check a Change Pack receipt. Offline — makes no network requests.
@@ -234,6 +240,23 @@ async function main() {
             "",
         ];
         process.stdout.write(lines.join("\n") + "\n");
+        return;
+    }
+    if (cmd === "attest") {
+        // The predicate only. cosign builds the in-toto Statement around it, hashes
+        // the blob into the subject, and signs — so the blob to hand it is the
+        // receipt this describes. Printed, never written: the redirect is the write.
+        const ctx = await readContext(root);
+        let pack;
+        try {
+            pack = await buildChangePack(ctx, { designs: values.design });
+        }
+        catch (err) {
+            if (err instanceof RefusedError)
+                fail(`refused: ${ctx.gate.headline}`, 1);
+            fail(err.message);
+        }
+        process.stdout.write(JSON.stringify(provenanceFor(pack.receipt), null, 2) + "\n");
         return;
     }
     if (cmd !== "verify")
